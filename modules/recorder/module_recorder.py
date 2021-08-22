@@ -24,6 +24,8 @@ class moduleRecorder:
     timedActions = []
     currentProgress = 0
 
+    devices = []
+
     state = {
         "status": "idle" # idle # replay
     }
@@ -62,7 +64,25 @@ class moduleRecorder:
                 "command": action['text']
             })
             lastActionStart = action['time']
-       
+
+    def check_devices(self):       
+        proc = subprocess.Popen(['adb', 'devices'], stdout=subprocess.PIPE)
+        proc.wait()
+        lines = proc.stdout.readlines()
+        self.devices = [];
+        if len(lines)>2:
+            # have devices
+            for line in lines:
+                if line.startswith(b'List of devices'):
+                    continue
+                if line == b'\n':
+                    continue
+                data = line.split(b'\t')
+                if(len(data)>1):
+                    self.devices.append({
+                        'name': str(data[0]).split("'")[1],
+                        'status': str(data[1]).replace('\\n','').split("'")[1]
+                    })
 
     def process(self, line):
 
@@ -169,6 +189,15 @@ class moduleRecorder:
                     else: 
                         self.lcd.draw.text((5,25+10*fileind), " " + file ,fill=(255,0,0,128))
                     fileind += 1
+
+            if len(self.devices) > 0:
+                activeDevice = self.devices[0]
+                if activeDevice['status'] == 'unauthorized':
+                    self.lcd.draw.text((5,118), activeDevice['name'] ,fill=(255,0,0,128))
+                else:
+                    self.lcd.draw.text((5,118), activeDevice['name'] ,fill=(0,255,0,128))
+            else:
+                self.lcd.draw.text((5,118), 'NO DEVICE CONNECTED' ,fill=(255,0,0,128))
         
         if self.state['status'] == 'playback':
             self.lcd.draw.text((5,25), "Now playing: " + self.files[self.fileSelectedInd] ,fill=(255,255,255,128))
@@ -185,6 +214,8 @@ class moduleRecorder:
         self.runFlag = 1
         while self.runFlag == 1:
             
+            self.check_devices()
+
             if GPIO.input(KEY_LEFT_PIN) == 0: # press left - close  
                 self.runFlag = 0
 
