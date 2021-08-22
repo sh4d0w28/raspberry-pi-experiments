@@ -1,8 +1,10 @@
-from gdep.LCD144 import KEY1_PIN, KEY2_PIN, KEY3_PIN, KEY_LEFT_PIN
+from gdep.LCD144 import KEY1_PIN, KEY2_PIN, KEY3_PIN, KEY_DOWN_PIN, KEY_LEFT_PIN, KEY_UP_PIN
 import RPi.GPIO as GPIO
 import time
 import subprocess
 import threading
+import os
+import json
 
 class moduleRecorder:
     
@@ -16,7 +18,11 @@ class moduleRecorder:
     action = {} # single action handler
     event = 1  # which coordinates we are filling (x1 or x2)
 
+    fileSelectedInd = 0
+    files = []
+
     timedActions = []
+    currentProgress = 0
 
     state = {
         "status": "idle" # idle # replay
@@ -37,6 +43,10 @@ class moduleRecorder:
                 self.state['status'] = 'idle'
                 self.finalize()
                 self.state['actions'] = self.timedActions
+
+                if self.fileToSave != '':
+                    with open('adb_recs/' + self.fileToSave, 'w') as f:
+                        json.dump(self.timedActions, f, indent=2) 
 
             line = proc.stdout.readline()
             if line.find(b'EV_') != -1:
@@ -126,10 +136,17 @@ class moduleRecorder:
         }
         return event
 
-    def replay(self):
+    def replay(self, fileToPlay):
+        if fileToPlay != '':
+            with open("adb_recs/"+fileToPlay, 'r') as f:
+                self.timedActions = json.load(f)
+
         self.state['status'] = 'playback'
-        self.updateScreen()
         for action in self.timedActions:
+            
+            self.currentProgress += 1
+            self.updateScreen()
+
             time.sleep(action['sleep'])
             p = subprocess.Popen(['adb', 'shell', 'input', action['command']])
             p.wait()
@@ -139,32 +156,54 @@ class moduleRecorder:
 
     def updateScreen(self):
         self.lcd.draw.rectangle((0,0,128,128), outline=0, fill=0)
-
         self.lcd.draw.text((5,15), "Recorder: " + self.state['status'],fill=(255,255,255,128))
-        if len(self.timedActions) > 0:
-            i = 0
-            for action in self.timedActions:
-                i += 1
-                self.lcd.draw.text((5,15+10*i), str(round(action['sleep'],3)) + " : " + action['command'],fill=(255,255,255,128))
+        
+        # draw file selector if idle
+        if self.state['status'] == 'idle':
+            self.getFiles();
+            if len(self.files) > 0:
+                fileind = 0
+                for file in self.files:
+                    if self.fileSelectedInd == fileind:
+                        self.lcd.draw.text((5,25+10*fileind), ">" + file + "<" ,fill=(255,255,255,128))
+                    else: 
+                        self.lcd.draw.text((5,25+10*fileind), " " + file ,fill=(255,0,0,128))
+                    fileind += 1
+        
+        if self.state['status'] == 'playback':
+            self.lcd.draw.text((5,25), "Now playing: " + self.files[self.fileSelectedInd] ,fill=(255,255,255,128))
+            self.lcd.draw.text((5,35), "Progress: " + str(self.currentProgress) + "/" + str(len(self.timedActions)) ,fill=(255,255,255,128))
 
         self.lcd.disp.LCD_ShowImage(self.lcd.image,0,0)
 
+    def getFiles(self):
+        self.files = os.listdir('./adb_recs')
+        
+
     def run(self):
+                
         self.runFlag = 1
         while self.runFlag == 1:
             
             if GPIO.input(KEY_LEFT_PIN) == 0: # press left - close  
                 self.runFlag = 0
 
-            if GPIO.input(KEY1_PIN) == 0:
+            if GPIO.input(KEY1_PIN) == 0: # start record
                 self.recFlag = True  
                 thread = threading.Thread(target=self.non_block_read)
                 thread.daemon = True # thread dies with the program
                 thread.start()
 
-            if GPIO.input(KEY2_PIN) == 0:
-                self.replay()
-
+            if self.state['status'] == 'idle':
+                if GPIO.input(KEY_DOWN_PIN) == 0: # file select
+                    self.fileSelectedInd += 1
+                if GPIO.input(KEY_UP_PIN) == 0: #file select
+                    self.fileSelectedInd -= 1
+                if GPIO.input(KEY2_PIN) == 0: # play file
+                    if self.files[self.fileSelectedInd] != '':
+                        self.currentProgress = 0
+                        self.replay(self.files[self.fileSelectedInd])
+                
             self.updateScreen()
         
             time.sleep(0.1)

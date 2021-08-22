@@ -32,14 +32,14 @@ class modulePong:
             self.lcd.draw.rectangle((1,self.pad1pos-20,5,self.pad1pos+20), outline=0, fill=0)
             self.lcd.draw.rectangle((123,self.pad2pos-20,128,self.pad2pos+20), outline=0, fill=0)
         else:
-            self.lcd.draw.rectangle((1,self.pad1pos-20,5,self.pad1pos+20), outline=255, fill=0xff00)
-            self.lcd.draw.rectangle((123,self.pad2pos-20,128,self.pad2pos+20), outline=255, fill=0xff00)
+            self.lcd.draw.rectangle((1,self.pad1pos-20,5,self.pad1pos+20), outline=0xffffff, fill=0xffffff)
+            self.lcd.draw.rectangle((123,self.pad2pos-20,128,self.pad2pos+20), outline=0xffffff, fill=0xffffff)
 
     def drawball(self, clear):
         if(clear == 1):
             self.lcd.draw.ellipse((self.ballposX-3,self.ballposY-3,self.ballposX+3,self.ballposY+3), outline=0, fill=0)  
         else:
-            self.lcd.draw.ellipse((self.ballposX-3,self.ballposY-3,self.ballposX+3,self.ballposY+3), outline=255, fill=0xff0000)  
+            self.lcd.draw.ellipse((self.ballposX-3,self.ballposY-3,self.ballposX+3,self.ballposY+3), outline=0xffffff, fill=0xffffff)  
 
     def pongx(self):
         self.balldx = - self.balldx
