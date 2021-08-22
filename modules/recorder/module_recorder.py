@@ -1,11 +1,26 @@
+from gdep.LCD144 import KEY1_PIN, KEY2_PIN, KEY3_PIN, KEY_LEFT_PIN
 import RPi.GPIO as GPIO
 import time
 import subprocess
+import threading
 
 class moduleRecorder:
     
     lcd = None
     runFlag = None
+    recFlag = None
+    
+    thread = None
+    proc = None 
+    actions = [] # action list to replay
+    action = {} # single action handler
+    event = 1  # which coordinates we are filling (x1 or x2)
+
+    timedActions = []
+
+    state = {
+        "status": "idle" # idle # replay
+    }
 
     def __init__(self, lcd) -> None:
         self.lcd = lcd
@@ -13,146 +28,143 @@ class moduleRecorder:
     def title(self):
         return "Recorder"
 
-    def record(self):
-        return subprocess.Popen(['adb shell getevent -lt | grep EV_ > /home/pi/robot/work/log.txt'], shell=True)
+    def non_block_read(self):
+        proc = subprocess.Popen(['adb', 'shell', 'getevent', '-lt'], stdout=subprocess.PIPE)
+        self.state['status'] = 'recording' # just to display
+        while self.recFlag:
+            if GPIO.input(KEY3_PIN) == 0:
+                self.recFlag = False
+                self.state['status'] = 'idle'
+                self.finalize()
+                self.state['actions'] = self.timedActions
 
-    def play(self):
-        file1 = open('log.txt', 'r')
-        count = 0
+            line = proc.stdout.readline()
+            if line.find(b'EV_') != -1:
+                command = self.transform(line)
+                self.process(command)
 
-        actions = []
+    def finalize(self):
+        lastActionStart = self.actions[0]['time']
+        for action in self.actions:
+            actionSleep = action['time'] - lastActionStart
+            self.timedActions.append({
+                "sleep": actionSleep,
+                "command": action['text']
+            })
+            lastActionStart = action['time']
+       
 
-        curr = {}
+    def process(self, line):
+
+        # press screen or release, lock time
+        if line['event'] == 'ABS_MT_POSITION_X':
+            data = int(line['data'],16)
+            if self.event == 1:
+                self.action['x1'] = data
+            elif self.event == 2:
+                self.action['x2'] = data
+        elif line['event'] == 'ABS_MT_POSITION_Y':
+            data = int(line['data'],16)
+            if self.event == 1:
+                self.action['y1'] = data
+            elif self.event == 2:
+                self.action['y2'] = data
+        elif line['event'] == 'BTN_TOUCH':
+            if self.event == 1:
+                self.event = 2
+            else: 
+                self.event = 1
+
+            if line['data'] == 'DOWN':
+                self.action['time'] = line['time']
+            if line['data'] == 'UP':
+                abdAction = self.getAdbAction(self.action)
+                self.actions.append(abdAction)
+                print(abdAction)
+                self.action = {}
+
+    def getAdbAction(self, action):
+        adbAction = {
+            "time": action['time']
+        }
+        if 'x2' in action and 'y2' in action: 
+            if abs(action['x2'] - action['x1']) < 10 and abs(action['y1'] - action['y2']) < 10:
+                adbAction['text'] = ' '.join(['tap',
+                str(action['x1']),str(action['y1'])
+                ])
+            else:  
+                adbAction['text'] = ' '.join(['swipe', 
+                    str(action['x1']),str(action['y1']),
+                    str(action['x2']),str(action['y2'])
+                ])
+        else:
+            adbAction['text'] = ' '.join([
+                'tap',str(action['x1']),str(action['y1'])
+            ])
+
+        return adbAction
+
+
+    def transform(self, line):
+        splitLine = str(line).split(' ')
+        linedata = []
+        for part in splitLine:
+            if part == "b'[":
+                continue
+            if part == "\\n'":
+                continue
+            if part == '':
+                continue
+            linedata.append(part.replace(']',''))
+
+        event = {
+            "time": float(linedata[0]),
+            "source": linedata[1],
+            "type": linedata[2],
+            "event": linedata[3],
+            "data": linedata[4]
+        }
+        return event
+
+    def replay(self):
+        self.state['status'] = 'playback'
+        self.updateScreen()
+        for action in self.timedActions:
+            time.sleep(action['sleep'])
+            p = subprocess.Popen(['adb', 'shell', 'input', action['command']])
+            p.wait()
         
-        while True:
-            count += 1
-        
-            # Get next line from file
-            line = file1.readline()
-        
-            # if line is empty
-            # end of file is reached
-            if not line:
-                break
+        self.state['status'] = 'idle'
+        self.updateScreen()
 
-            els = line.split(' ')
-            nonnull = []
-            for el in els:
-                if el != '':
-                    nonnull.append(el.replace(']','').strip())
+    def updateScreen(self):
+        self.lcd.draw.rectangle((0,0,128,128), outline=0, fill=0)
 
-            if len(nonnull) != 7:
-                #donothing
-                i = 200000
-            elif nonnull[4] == 'SYN_REPORT':
-                actions.append(curr)
-                curr = {'btn':''}
-            elif nonnull[4] == 'ABS_MT_POSITION_X':
-                curr['x'] = int(nonnull[5],16)
-            elif nonnull[4] == 'ABS_MT_POSITION_Y':
-                curr['y'] = int(nonnull[5],16)
-            elif nonnull[4] == 'BTN_TOUCH':
-                curr['btn'] = nonnull[5]
-                curr['time'] = nonnull[1]
+        self.lcd.draw.text((5,15), "Recorder: " + self.state['status'],fill=(255,255,255,128))
+        if len(self.timedActions) > 0:
+            i = 0
+            for action in self.timedActions:
+                i += 1
+                self.lcd.draw.text((5,15+10*i), str(round(action['sleep'],3)) + " : " + action['command'],fill=(255,255,255,128))
 
-        file1.close()
-
-        # print('ACTIONS', actions)
-
-        commands = []
-        command = {}
-
-        for action in actions:
-            if action['btn'] == 'DOWN' :  # start swipe / click
-                command['x1'] = action['x']
-                command['y1'] = action['y']
-                command['time1'] = float(action['time'])
-
-            elif action['btn'] == 'UP' : # end swipe / click
-                command['time2'] = float(action['time'])
-
-                if 'x2' in command:
-                  commands.append({
-                    'text':'swipe' + ' ' + str(command['x1']) + ' ' + str(command['y1']) + ' ' + str(command['x2']) + ' ' + str(command['y2']),
-                    'time1': command['time1'],
-                    'time2': command['time2']
-                })
-                else:
-                  commands.append({
-                    'text': 'tap' + ' ' + str(command['x1']) + ' ' + str(command['y1']),
-                    'time1': command['time1'],
-                    'time2': command['time2']
-                })
-                command = {}
-            else:
-                if 'x' in action:
-                  command['x2'] = action['x']
-                if 'y' in action:
-                  command['y2'] = action['y']
-
-        # print('COMMANDS', commands)
-
-        timed_commands = []
-
-        prev_time = 0
-
-        for command in commands:
-          if prev_time == 0:
-            prev_time = command['time1']
-
-          timed_commands.append({
-            'sleep': command['time1'] - prev_time,
-            'text': command['text']
-          })
-
-          prev_time = command['time2']
-
-        print('TIMED COMMANDS', timed_commands)
-
-        cmd = 0
-
-
-        for command in timed_commands:
-            cmd = cmd + 1
-            print('adb shell input ' + command['text'])
-            time.sleep(command['sleep'])
-            subprocess.Popen(['adb', 'shell', 'input', command['text']])
-            
-            png = subprocess.check_output(['adb', 'shell', 'screencap', '-p'])
-            f = open('screen' + str(cmd) + '.png', 'wb')
-            f.write(png)
-            f.close()
-
-    mode = ''
-    process = None
+        self.lcd.disp.LCD_ShowImage(self.lcd.image,0,0)
 
     def run(self):
         self.runFlag = 1
         while self.runFlag == 1:
             
-            if GPIO.input(5) == 0: # press left - close  
+            if GPIO.input(KEY_LEFT_PIN) == 0: # press left - close  
                 self.runFlag = 0
 
-            if GPIO.input(21) == 0:
-                print(139)
-                if self.mode != 'record':
-                    self.mode = 'record'
-                    self.process = self.record()
-                else:
-                    print(146)
-                    print(148)
-                    self.process.terminate()
-                    retcode = self.process.wait()
+            if GPIO.input(KEY1_PIN) == 0:
+                self.recFlag = True  
+                thread = threading.Thread(target=self.non_block_read)
+                thread.daemon = True # thread dies with the program
+                thread.start()
 
-            if GPIO.input(20) == 0:
-                print('play?')
-                if self.mode != 'play':
-                    self.mode = 'play'
-                    self.process = self.play()
-                    self.mode = ''
+            if GPIO.input(KEY2_PIN) == 0:
+                self.replay()
 
-            self.lcd.draw.rectangle((0,0,128,128), outline=0, fill=0)
-            self.lcd.draw.text((5,5), "RECORDER",fill=(255,255,255,128))
-            self.lcd.draw.text((5,15), "MODE: " + self.mode,fill=(255,255,255,128))
-            self.lcd.disp.LCD_ShowImage(self.lcd.image,0,0)
+            self.updateScreen()
+        
             time.sleep(0.1)
