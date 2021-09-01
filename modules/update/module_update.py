@@ -21,7 +21,7 @@ class moduleUpdate:
         self.lcd = lcd
 
     def title(self):
-        return "UPDATE"
+        return "UPDATE ( CAREFUL !!!!! )"
 
     def run(self):
         self.runFlag = 1
