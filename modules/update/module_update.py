@@ -26,4 +26,4 @@ class moduleUpdate:
     def run(self):
         self.runFlag = 1
         self.update()
-        os.execv(sys.argv[0], sys.argv)
+        os.execv(sys.executable, ['python3'] + [os.path.abspath(sys.argv[0])])
