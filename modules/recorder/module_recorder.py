@@ -47,7 +47,7 @@ class moduleRecorder:
                 self.state['actions'] = self.timedActions
 
                 if self.fileToSave != '':
-                    with open('adb_recs/' + self.fileToSave, 'w') as f:
+                    with open('/home/pi/robot/adb_recs/' + self.fileToSave, 'w') as f:
                         json.dump(self.timedActions, f, indent=2) 
 
             line = proc.stdout.readline()
@@ -158,7 +158,7 @@ class moduleRecorder:
 
     def replay(self, fileToPlay):
         if fileToPlay != '':
-            with open("adb_recs/"+fileToPlay, 'r') as f:
+            with open("/home/pi/robot/adb_recs/"+fileToPlay, 'r') as f:
                 self.timedActions = json.load(f)
 
         self.state['status'] = 'playback'
@@ -206,7 +206,11 @@ class moduleRecorder:
         self.lcd.disp.LCD_ShowImage(self.lcd.image,0,0)
 
     def getFiles(self):
-        self.files = os.listdir('./adb_recs')
+        try:
+            self.files = os.listdir('/home/pi/robot/adb_recs')
+        except Exception as e:
+            print(e)
+            self.files = []
         
 
     def run(self):

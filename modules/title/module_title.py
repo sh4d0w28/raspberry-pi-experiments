@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+import json
 import time
 import subprocess
 
@@ -9,6 +10,15 @@ class moduleTitle:
             output = subprocess.check_output(['/usr/sbin/iwgetid'])
             ssid = str(output).split('"')[1]
             return ssid
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            return ""
+
+    def getNgrokIp(self):
+        try:
+            output = subprocess.check_output(['curl http://127.0.0.1:4040/api/tunnels | jq ".tunnels[0].public_url"'], shell=True)
+            url = str(output).split('"')[1]
+            return url
         except subprocess.CalledProcessError as e:
             print(e.output)
             return ""
@@ -42,8 +52,18 @@ class moduleTitle:
 
             wifisid = self.getWifiSsid()
             extIp = self.getExtIp()
+            ngrokUrl = self.getNgrokIp()
+            
             self.lcd.draw.text((5,5), "WiFi: " + wifisid ,fill=(255,255,255,128))
             self.lcd.draw.text((5,15), "IP: " + extIp ,fill=(255,255,255,128))
+            
+            try:
+                urls = ngrokUrl.split(":")
+                self.lcd.draw.text((5,25), "NGROK" ,fill=(128,255,128,128))
+                self.lcd.draw.text((5,35), urls[1] ,fill=(128,255,128,128))
+                self.lcd.draw.text((5,45), "port: " + urls[2] ,fill=(128,255,128,128))
+            except Exception as e:
+                print(e)
 
             self.lcd.draw.text((5,112), "(c)" ,fill=(255,255,255,128))
             self.lcd.draw.text((30,108), "Maksim Edush" ,fill=(255,255,255,128))

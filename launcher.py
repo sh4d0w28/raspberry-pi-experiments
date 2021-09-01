@@ -1,3 +1,4 @@
+
 from gdep.LCD144 import KEY_UP_PIN, KEY_DOWN_PIN, KEY_PRESS_PIN, LCD_LCD144
 import time
 import RPi.GPIO as GPIO
@@ -6,6 +7,7 @@ from modules.recorder.module_recorder import moduleRecorder
 from modules.title.module_title import moduleTitle
 from modules.servos.module_servos import moduleServos
 from modules.pong.module_pong import modulePong
+from modules.update.module_update import moduleUpdate
 
 lcd = LCD_LCD144()
 
@@ -16,7 +18,8 @@ modules = [
     moduleTitle(lcd),
     moduleRecorder(lcd),
     moduleServos(lcd),
-    modulePong(lcd)
+    modulePong(lcd),
+    moduleUpdate(lcd)
 ]
 
 runFlag = 1
