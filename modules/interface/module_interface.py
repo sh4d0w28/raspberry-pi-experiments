@@ -1,0 +1,318 @@
+import json
+import subprocess
+from threading import Thread
+from gdep.LCD144 import KEY1_PIN, KEY2_PIN, KEY3_PIN, KEY_DOWN_PIN, KEY_LEFT_PIN, KEY_PRESS_PIN, KEY_RIGHT_PIN, KEY_UP_PIN, LCD_LCD144
+import RPi.GPIO as GPIO
+import time
+from datetime import timedelta
+import math
+
+class moduleInterface:
+
+# global values for module
+    lcd: LCD_LCD144
+    runFlag = None
+    buttonStates = {
+        KEY1_PIN: 1,
+        KEY2_PIN: 1,
+        KEY3_PIN: 1,
+        KEY_RIGHT_PIN: 1,
+        KEY_DOWN_PIN: 1,
+        KEY_UP_PIN: 1,
+        KEY_PRESS_PIN: 1,
+        KEY_LEFT_PIN: 1
+    }
+
+    def __init__(self, lcd) -> None:
+        self.lcd = lcd
+        self.init()
+
+    def buttonHandler(self):
+        while self.runFlag == 1:
+          for button in self.buttonStates:
+            if GPIO.input(button) != self.buttonStates[button]:  
+              self.buttonStates[button] = GPIO.input(button)
+              # print(str(button) + ' = ' + str(self.buttonStates[button]))              
+              if GPIO.input(button) == 0 and self.buttonPressHandlers.get(button):
+                self.buttonPressHandlers.get(button)(self)    
+
+    def run(self):
+        self.runFlag = 1
+        process = Thread(target=self.buttonHandler)
+        process.start();
+        while self.runFlag == 1:
+            self.mainFlow()
+            self.lcd.disp.LCD_ShowImage(self.lcd.image,0,0)
+            time.sleep(0.05)
+
+# end global values for module
+    
+    recorderState = "idle" # idle / play / record / pause
+    availableFiles = [
+        "1 Basic flow",
+        "2 Test file",
+        "3 Voucher tracking file here",
+        "4 New file",
+        "5 New file2",
+        "6 RE:rE:RE::RE:RE:RE:RE FINAL",
+        "7 now really final",
+        "8 SH4D0W28 IS DA BEST!!!!!!!",
+        "9 !123",
+        "10 !!123123"
+    ]
+    page = 0 # starting from 0
+    pageSize = 5
+    selectedFile = 0 # select index on this page, first: 0 
+
+    timecode = 0 # record or playback time
+
+# variables related to command processing
+
+    actions = [] # action list to replay
+    action = {} # single action handler
+    event = 1  # which coordinates we are filling (x1 or x2)
+
+#########################################################################
+
+    def title(self):
+        return "Interface"
+
+    def init(self):
+        self.recorderState = "record";
+
+    def timecodeStart(self):
+        startdate = time.time()
+        while self.recorderState == "record":
+            curdate = time.time() - startdate
+            self.timecode = curdate
+            time.sleep(0.1)
+  
+    def getPageCount(self):
+        return int(math.ceil(len(self.availableFiles)/self.pageSize))
+
+# read event from ADB
+    def non_block_read(self):
+        proc = subprocess.Popen(['adb', 'shell', 'getevent', '-lt'], stdout=subprocess.PIPE)
+        while self.recorderState == "record":
+            line = proc.stdout.readline()
+            if line.find(b'EV_') != -1:
+                command = self.transform(line)
+                self.process(command)
+
+# transform string command to object and extract information 
+    def transform(self, line):
+        splitLine = str(line).split(' ')
+        linedata = []
+        for part in splitLine:
+            if part == "b'[":
+                continue
+            if part == "\\n'":
+                continue
+            if part == '':
+                continue
+            linedata.append(part.replace(']',''))
+
+        event = {
+            "time": float(linedata[0]),
+            "source": linedata[1],
+            "type": linedata[2],
+            "event": linedata[3],
+            "data": linedata[4]
+        }
+        return event
+
+# transform command to adb actions
+    def process(self, line):
+        # press screen or release, lock time
+        if line['event'] == 'ABS_MT_POSITION_X':
+            data = int(line['data'],16)
+            if self.event == 1:
+                self.action['x1'] = data
+            elif self.event == 2:
+                self.action['x2'] = data
+        elif line['event'] == 'ABS_MT_POSITION_Y':
+            data = int(line['data'],16)
+            if self.event == 1:
+                self.action['y1'] = data
+            elif self.event == 2:
+                self.action['y2'] = data
+        elif line['event'] == 'BTN_TOUCH':
+            if self.event == 1:
+                self.event = 2
+            else: 
+                self.event = 1
+
+            if line['data'] == 'DOWN':
+                self.action['time'] = line['time']
+            if line['data'] == 'UP':
+                abdAction = self.getAdbAction(self.action)
+                self.actions.append(abdAction)
+                print(abdAction)
+                self.action = {}
+
+# transform action to "ADB TAP X Y" command prepared to replay 
+    def getAdbAction(self, action):
+        adbAction = {
+            "time": action['time']
+        }
+        if 'x2' in action and 'y2' in action: 
+            if abs(action['x2'] - action['x1']) < 10 and abs(action['y1'] - action['y2']) < 10:
+                adbAction['text'] = ' '.join(['tap',
+                str(action['x1']),str(action['y1'])
+                ])
+            else:  
+                adbAction['text'] = ' '.join(['swipe', 
+                    str(action['x1']),str(action['y1']),
+                    str(action['x2']),str(action['y2'])
+                ])
+        else:
+            adbAction['text'] = ' '.join([
+                'tap',str(action['x1']),str(action['y1'])
+            ])
+
+        return adbAction
+
+
+# check connected devices
+    def check_devices(self):       
+        proc = subprocess.Popen(['adb', 'devices'], stdout=subprocess.PIPE)
+        proc.wait()
+        lines = proc.stdout.readlines()
+        self.devices = [];
+        if len(lines)>2:
+            # have devices
+            for line in lines:
+                if line.startswith(b'List of devices'):
+                    continue
+                if line == b'\n':
+                    continue
+                data = line.split(b'\t')
+                if(len(data)>1):
+                    self.devices.append({
+                        'name': str(data[0]).split("'")[1],
+                        'status': str(data[1]).replace('\\n','').split("'")[1]
+                    })
+
+#button handlers
+
+    def button_key_left_pin_handler(self):
+        self.runFlag = 0
+
+    def button_key_down_pin_handler(self):
+        if self.selectedFile >= self.pageSize - 1:
+            if self.page < self.getPageCount()-1:    # try go to next page
+                self.page += 1
+                self.selectedFile = 0
+            else:                                  # else stay where you are
+                self.selectedFile = self.pageSize-1
+        else: # move down
+            if self.page == self.getPageCount()-1:
+                lastPageCount = len(self.availableFiles) % self.pageSize
+                if lastPageCount == 0:
+                    lastPageCount = self.pageSize
+                if self.selectedFile < lastPageCount - 1:
+                    self.selectedFile += 1
+                else:
+                    self.selectedFile += 0
+            else:
+                self.selectedFile += 1
+
+    def button_key_up_pin_handler(self):
+        if self.selectedFile <=  0:
+            if self.page > 0:                      # try go to prev page
+                self.page -= 1
+                self.selectedFile = self.pageSize - 1
+            else:                                  # else stay where you are
+                self.selectedFile = 0
+        else: # move up
+            self.selectedFile -= 1
+
+    def button_key_1_pin_handler(self):
+        if self.recorderState == "idle":
+            self.recorderState = "record"
+            process = Thread(target=self.timecodeStart)
+            process.start()
+            process2 = Thread(target=self.non_block_read)
+            process2.start()
+        else:
+            self.recorderState = "idle"
+
+    def button_key_2_pin_handler(self):
+        if self.recorderState == "record":
+            self.actions.append({'time'})
+
+    buttonPressHandlers = {
+        KEY_LEFT_PIN: button_key_left_pin_handler,
+        KEY_DOWN_PIN: button_key_down_pin_handler,
+        KEY_UP_PIN: button_key_up_pin_handler,
+        KEY1_PIN: button_key_1_pin_handler
+        KEY2_PIN: button_key_2_pin_handler
+    }
+
+#render functions
+
+    def recordStateRender(self):
+        #stop button
+        self.lcd.draw.rectangle((88,30,98,40), fill=(255,0,0,128))
+        self.lcd.draw.text((102,30), "STOP", fill=(255,0,0,128))
+
+        #shot button
+        self.lcd.draw.text((102, 60), "SHOT", fill=(0,255,0,128))
+
+        #timecode
+        self.lcd.draw.ellipse((60,7,66,13), fill=(255,0,0,128))
+        timecode = str(timedelta(seconds=self.timecode))[:-5]
+        self.lcd.draw.text((70,5), timecode, fill=(255,255,255,128))
+
+        #scrollpane
+        self.lcd.draw.rectangle((0,16,85,110), fill=(0,0,0,128), outline=(255,255,255,0))
+        if len(self.actions) > 0:
+            lastActions = self.actions[-8:]
+            actionIndex = 0
+            for action in lastActions:
+                self.lcd.draw.text((3,16+11*actionIndex), action.get('text')[:13], fill=(255,255,255,0))
+                actionIndex += 1
+
+    def idleStateRender(self):
+        #rec button
+        self.lcd.draw.ellipse((95,30,105,40), fill=(255,0,0,128))
+        self.lcd.draw.text((108,30), "REC", fill=(255,0,0,128))
+
+        #play button
+        self.lcd.draw.text((102, 60), "PLAY", fill=(0,255,0,128))
+        self.lcd.draw.regular_polygon((93,65,5), n_sides=3, rotation=30, fill=(0,255,0,128))
+    
+        #scrollpane
+        self.lcd.draw.rectangle((0,16,85,110), fill=(0,0,0,128), outline=(255,255,255,0))
+        visibleFiles = self.availableFiles[self.page*self.pageSize:(self.page+1)*self.pageSize] 
+        fileIndex = 0
+        for file in visibleFiles:
+            if fileIndex == self.selectedFile:
+                self.lcd.draw.rectangle((1,16+11*fileIndex,85,27+11*fileIndex), fill=(255,255,255,0))
+                self.lcd.draw.text((3,16+11*fileIndex), file[0:13], fill=(0,0,0,0))
+            else:
+                self.lcd.draw.text((3,16+11*fileIndex), file[0:13], fill=(255,255,255,0))
+            fileIndex += 1
+
+        #pageIndicator
+        self.lcd.draw.rectangle((0,95,83,110), fill=(0,0,0,128), outline=(255,255,255,0))
+        self.lcd.draw.text((3,98), "page " + str(self.page+1) + "/" + str(self.getPageCount()), fill=(255,255,255,128))
+
+    def mainFlow(self):
+        self.lcd.draw.rectangle((0,0,128,128), outline=0, fill=0)
+        self.lcd.draw.text((5,5),"Recorder", fill=(255,255,255,128))
+
+        self.check_devices()
+        if len(self.devices) > 0:
+            activeDevice = self.devices[0]
+            if activeDevice['status'] == 'unauthorized':
+                self.lcd.draw.text((5,117), activeDevice['name'] ,fill=(255,0,0,128))
+            else:
+                self.lcd.draw.text((5,117), activeDevice['name'] ,fill=(0,255,0,128))
+        else:
+            self.lcd.draw.text((5,117), 'NO DEVICE CONNECTED' ,fill=(255,0,0,128))
+
+        if self.recorderState == "idle":
+            self.idleStateRender()        
+        elif self.recorderState == "record":
+            self.recordStateRender()
