@@ -1,10 +1,18 @@
 import json
+import os
 import subprocess
 from threading import Thread
+
+from PIL import Image
+
+from fpdf.fpdf import FPDF
+
 from gdep.LCD144 import KEY1_PIN, KEY2_PIN, KEY3_PIN, KEY_DOWN_PIN, KEY_LEFT_PIN, KEY_PRESS_PIN, KEY_RIGHT_PIN, KEY_UP_PIN, LCD_LCD144
+
 import RPi.GPIO as GPIO
 import time
 from datetime import timedelta
+from datetime import datetime
 import math
 
 class moduleInterface:
@@ -46,22 +54,18 @@ class moduleInterface:
             time.sleep(0.05)
 
 # end global values for module
+# ##############################################################################################
+# ##############################################################################################
+# ##############################################################################################
+# ##############################################################################################     
+
+    recorderState = "idle" # idle / play / record / stop
     
-    recorderState = "idle" # idle / play / record / pause
-    availableFiles = [
-        "1 Basic flow",
-        "2 Test file",
-        "3 Voucher tracking file here",
-        "4 New file",
-        "5 New file2",
-        "6 RE:rE:RE::RE:RE:RE:RE FINAL",
-        "7 now really final",
-        "8 SH4D0W28 IS DA BEST!!!!!!!",
-        "9 !123",
-        "10 !!123123"
-    ]
+    fileDir = "/home/pi/robot/adb_recs"
+    reportsDir = "/home/pi/robot/reports"
+    availableFiles = []
     page = 0 # starting from 0
-    pageSize = 5
+    pageSize = 7
     selectedFile = 0 # select index on this page, first: 0 
 
     timecode = 0 # record or playback time
@@ -69,8 +73,12 @@ class moduleInterface:
 # variables related to command processing
 
     actions = [] # action list to replay
+    timedActions = [] # actions with relative timings
     action = {} # single action handler
     event = 1  # which coordinates we are filling (x1 or x2)
+    lasttimediff = 0
+
+    playlog = []
 
 #########################################################################
 
@@ -78,7 +86,8 @@ class moduleInterface:
         return "Interface"
 
     def init(self):
-        self.recorderState = "record";
+        self.recorderState = "idle";
+        self.getFiles()
 
     def timecodeStart(self):
         startdate = time.time()
@@ -89,6 +98,75 @@ class moduleInterface:
   
     def getPageCount(self):
         return int(math.ceil(len(self.availableFiles)/self.pageSize))
+
+    def getFiles(self):
+        try:
+            self.availableFiles = os.listdir(self.fileDir)
+        except Exception as e:
+            print(e)
+            self.availableFiles = []
+
+# replay
+    def replay(self, fileToPlay, doReport):
+        if fileToPlay != '':
+            with open(self.fileDir + "/"+fileToPlay, 'r') as f:
+                self.timedActions = json.load(f)
+        shotTimes = 0
+
+        screenshots = []
+
+        for action in self.timedActions:    
+            # self.currentProgress += 1
+            # self.updateScreen()
+            time.sleep(action['sleep'])
+            if action['command'] == 'SCREENSHOT':
+                # need to save screenshot
+                shotTimes += 1
+                screenFileName = datetime.now().strftime("%H%M%S") + "-" + str(shotTimes) + ".png";
+                
+                if doReport:
+                    p = subprocess.Popen(['adb', 'shell', 'screencap', '-p', '/sdcard/' + screenFileName])
+                    p.wait()
+                    screenshots.append(screenFileName);
+                    self.playlog.append('SHOT ' + screenFileName)
+                    print('captured')
+                else:
+                    self.playlog.append('NOSHOT ' + screenFileName)
+                    print('test mode')
+            else:
+                #log here
+                self.playlog.append(action['command'][:10])
+                
+                p = subprocess.Popen(['adb', 'shell', 'input', action['command']])
+                p.wait()
+
+        if doReport:
+            self.playlog.append('[R] GET_IMAGES..')
+            for screenshot in screenshots:
+                    p = subprocess.Popen(['adb', 'pull', '/sdcard/' + screenshot, self.reportsDir + "/" + screenshot])
+                    p.wait()
+            self.playlog.append('[R] DONE')
+
+            #GENERATE PDF
+            pdf = FPDF()
+
+            pdf.add_page()
+            pdf.text(20,30, 'REPORT AT ' + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+            
+            for image in screenshots:
+                self.playlog.append('[R]PDF+' + image)
+                pdf.add_page()
+                im1 = Image.open(self.reportsDir + "/" + image)
+                rgbim = im1.convert('RGB')
+                rgbim.save(self.reportsDir + "/" + image + ".jpg")
+                pdf.image(self.reportsDir + "/" + image + ".jpg", 0,0, 100)
+            
+            pdfFileName = datetime.now().strftime("%H%M%S") + ".pdf"
+            pdf.output(self.reportsDir + "/"+ pdfFileName, "F")
+            self.playlog.append('[R]SAVED' + pdfFileName)
+
+        self.recorderState = 'stop'
+
 
 # read event from ADB
     def non_block_read(self):
@@ -119,6 +197,7 @@ class moduleInterface:
             "event": linedata[3],
             "data": linedata[4]
         }
+        self.lasttimediff = datetime.now().timestamp() - event.get('time')
         return event
 
 # transform command to adb actions
@@ -172,6 +251,17 @@ class moduleInterface:
 
         return adbAction
 
+#transform adb actions to script
+    def finalize(self):
+        if len(self.actions) > 0:
+            lastActionStart = self.actions[0]['time']
+            for action in self.actions:
+                actionSleep = action['time'] - lastActionStart
+                self.timedActions.append({
+                    "sleep": actionSleep,
+                    "command": action['text']
+                })
+                lastActionStart = action['time']
 
 # check connected devices
     def check_devices(self):       
@@ -230,26 +320,98 @@ class moduleInterface:
     def button_key_1_pin_handler(self):
         if self.recorderState == "idle":
             self.recorderState = "record"
+            self.actions = []
+            self.timedActions = []
+            self.event = 1
+
             process = Thread(target=self.timecodeStart)
-            process.start()
             process2 = Thread(target=self.non_block_read)
+
+            process.start()
             process2.start()
+        elif self.recorderState == "stop":
+            self.recorderState = "idle"
+
         else:
             self.recorderState = "idle"
+            self.finalize()
+            if len(self.timedActions) > 0:
+                with open(self.fileDir + '/' + datetime.now().strftime("%H%M%S") + ".json", 'w') as f:
+                    json.dump(self.timedActions, f, indent=2)
+                self.getFiles()
 
     def button_key_2_pin_handler(self):
         if self.recorderState == "record":
-            self.actions.append({'time'})
+            abdAction = {"time": datetime.now().timestamp() - self.lasttimediff, "text":"SCREENSHOT"}
+            self.actions.append(abdAction)
+            print(abdAction)
+        elif self.recorderState == "idle":
+            self.playlog = []
+            selectedFileName = self.availableFiles[self.page*self.pageSize + self.selectedFile]
+            process = Thread(target=self.replay, args=[selectedFileName, False])
+            self.recorderState = "play"
+            process.start()
+
+    def button_key_3_pin_handler(self):
+        if self.recorderState == "idle":
+            self.playlog = []
+            selectedFileName = self.availableFiles[self.page*self.pageSize + self.selectedFile]
+            process = Thread(target=self.replay, args=[selectedFileName, True])
+            self.recorderState = "play"
+            process.start()
 
     buttonPressHandlers = {
         KEY_LEFT_PIN: button_key_left_pin_handler,
         KEY_DOWN_PIN: button_key_down_pin_handler,
         KEY_UP_PIN: button_key_up_pin_handler,
-        KEY1_PIN: button_key_1_pin_handler
-        KEY2_PIN: button_key_2_pin_handler
+        KEY1_PIN: button_key_1_pin_handler,
+        KEY2_PIN: button_key_2_pin_handler,
+        KEY3_PIN: button_key_3_pin_handler
     }
 
 #render functions
+
+    def playbackStopStateRender(self):
+        #stop button
+        self.lcd.draw.text((102,30), "BACK", fill=(255,0,0,128))
+
+        #play button
+        self.lcd.draw.text((92, 90), "REPEAT", fill=(0,255,0,128))
+        
+        #scrollpane
+        self.lcd.draw.rectangle((0,16,85,110), fill=(0,0,0,128), outline=(255,255,255,0))
+        if len(self.playlog) > 0:
+            lastActions = self.playlog[-8:]
+            actionIndex = 0
+            for action in lastActions:
+                self.lcd.draw.text((3,16+11*actionIndex), action[:13], fill=(255,255,255,0))
+                actionIndex += 1
+
+    def playbackStateRender(self):
+        #stop button
+        self.lcd.draw.rectangle((88,30,98,40), fill=(255,0,0,128))
+        self.lcd.draw.text((102,30), "STOP", fill=(255,0,0,128))
+
+        #shot button
+        self.lcd.draw.text((92, 60), "PAUSE", fill=(0,255,0,128))
+ 
+        #play button
+        self.lcd.draw.text((102, 90), "PLAY", fill=(0,255,0,128))
+        self.lcd.draw.regular_polygon((93,95,5), n_sides=3, rotation=30, fill=(0,255,0,128))
+
+        #timecode
+        self.lcd.draw.regular_polygon((63,10,3), n_sides=3, rotation=30, fill=(0,255,0,128))
+        timecode = str(timedelta(seconds=self.timecode))[:-5]
+        self.lcd.draw.text((70,5), timecode, fill=(255,255,255,128))
+
+        #scrollpane
+        self.lcd.draw.rectangle((0,16,85,110), fill=(0,0,0,128), outline=(255,255,255,0))
+        if len(self.playlog) > 0:
+            lastActions = self.playlog[-8:]
+            actionIndex = 0
+            for action in lastActions:
+                self.lcd.draw.text((3,16+11*actionIndex), action[:13], fill=(255,255,255,0))
+                actionIndex += 1
 
     def recordStateRender(self):
         #stop button
@@ -316,3 +478,7 @@ class moduleInterface:
             self.idleStateRender()        
         elif self.recorderState == "record":
             self.recordStateRender()
+        elif self.recorderState == "play":
+            self.playbackStateRender()
+        elif self.recorderState == "stop":
+            self.playbackStopStateRender()

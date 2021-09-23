@@ -1,0 +1,5 @@
+fpdf==1.7.2
+numpy==1.21.2
+Pillow==8.3.2
+smbus==1.1.post2
+spidev==3.5

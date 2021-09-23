@@ -5,9 +5,9 @@ import RPi.GPIO as GPIO
 
 # from modules.recorder.module_recorder import moduleRecorder
 from modules.title.module_title import moduleTitle
-from modules.servos.module_servos import moduleServos
-from modules.pong.module_pong import modulePong
-from modules.update.module_update import moduleUpdate
+# from modules.servos.module_servos import moduleServos
+# from modules.pong.module_pong import modulePong
+# from modules.update.module_update import moduleUpdate
 from modules.interface.module_interface import moduleInterface
 
 lcd = LCD_LCD144()
@@ -18,9 +18,9 @@ selected = 0
 modules = [
     moduleTitle(lcd),
     # moduleRecorder(lcd),
-    moduleServos(lcd),
-    modulePong(lcd),
-    moduleUpdate(lcd),
+    # moduleServos(lcd),
+    # modulePong(lcd),
+    # moduleUpdate(lcd),
     moduleInterface(lcd)
 ]
 
