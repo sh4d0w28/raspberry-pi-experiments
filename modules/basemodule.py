@@ -35,9 +35,8 @@ class basemodule:
           for button in self.buttonStates:
             if GPIO.input(button) != self.buttonStates[button]:  
               self.buttonStates[button] = GPIO.input(button)
-              # print(str(button) + ' = ' + str(self.buttonStates[button]))              
               if GPIO.input(button) == 0 and self.buttonPressHandlers.get(button):
-                self.buttonPressHandlers.get(button)(self)    
+                self.buttonPressHandlers.get(button)()
 
     def run(self):
         self.runFlag = 1

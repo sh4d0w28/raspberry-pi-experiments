@@ -6,7 +6,7 @@ import RPi.GPIO as GPIO
 from modules.connectinfo.connectinfo_main import connectInfo
 from modules.servos.servos_main import servos
 # from modules.pong.module_pong import modulePong
-# from modules.update.module_update import moduleUpdate
+from modules.update.module_update import moduleUpdate
 # from modules.interface.module_interface import moduleInterface
 
 lcd = LCD_LCD144()
@@ -16,9 +16,9 @@ selected = 0
 
 modules = [
     connectInfo(lcd),
-    servos(lcd)
+    servos(lcd),
     # modulePong(lcd),
-    # moduleUpdate(lcd),
+    moduleUpdate(lcd)
     # moduleInterface(lcd)
 ]
 
