@@ -36,7 +36,7 @@ class basemodule:
             if GPIO.input(button) != self.buttonStates[button]:  
               self.buttonStates[button] = GPIO.input(button)
               if GPIO.input(button) == 0 and self.buttonPressHandlers.get(button):
-                self.buttonPressHandlers.get(button)()
+                self.buttonPressHandlers.get(button)(self)
 
     def run(self):
         self.runFlag = 1

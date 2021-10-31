@@ -1,13 +1,14 @@
 
-from gdep.LCD144 import KEY_UP_PIN, KEY_DOWN_PIN, KEY_PRESS_PIN, LCD_LCD144
+from gdep.LCD144 import KEY_UP_PIN, KEY_DOWN_PIN, KEY_PRESS_PIN, KEY1_PIN, LCD_LCD144
 import time
 import RPi.GPIO as GPIO
 
 from modules.connectinfo.connectinfo_main import connectInfo
-from modules.servos.servos_main import servos
+# from modules.servos.servos_main import servos
+from modules.strand.strand_main import strand
 # from modules.pong.module_pong import modulePong
 from modules.update.module_update import moduleUpdate
-# from modules.interface.module_interface import moduleInterface
+from modules.interface.module_interface import moduleInterface
 
 lcd = LCD_LCD144()
 
@@ -16,10 +17,11 @@ selected = 0
 
 modules = [
     connectInfo(lcd),
-    servos(lcd),
+    # servos(lcd),
+    strand(lcd),
     # modulePong(lcd),
-    moduleUpdate(lcd)
-    # moduleInterface(lcd)
+    moduleUpdate(lcd),
+    moduleInterface(lcd)
 ]
 
 runFlag = 1
@@ -30,10 +32,10 @@ if __name__=='__main__':
 
         if mode == -1:
                     
-            if GPIO.input(5) == 0: # press left - close  
+            if GPIO.input(KEY1_PIN) == 0: # press pin1 - close  
                 runFlag = 0
 
-            if GPIO.input(KEY_UP_PIN) == 0: # press left - close  
+            if GPIO.input(KEY_UP_PIN) == 0:
                 if selected > 0:
                     selected -= 1
             if GPIO.input(KEY_DOWN_PIN) == 0:
