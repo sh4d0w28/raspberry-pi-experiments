@@ -482,3 +482,6 @@ class moduleInterface:
             self.playbackStateRender()
         elif self.recorderState == "stop":
             self.playbackStopStateRender()
+
+    def serve(self, path):
+        print("serve", path)

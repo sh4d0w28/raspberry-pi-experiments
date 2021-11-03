@@ -55,3 +55,6 @@ class basemodule:
 
     def mainFlow(self):
         pass
+
+    def serve(self, path):
+        pass

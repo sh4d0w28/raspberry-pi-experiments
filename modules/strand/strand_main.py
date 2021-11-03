@@ -21,6 +21,9 @@ class strand(basemodule):
     mode = 0
     modes = ['warning', 'rainbow']
 
+    def serve(self, path):
+        self.button_key_1_pin_handler()
+
     def title(self):
         return "LEDs"
 
