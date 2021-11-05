@@ -18,6 +18,8 @@ class basemodule:
         KEY_PRESS_PIN: 1,
         KEY_LEFT_PIN: 1
     }
+
+    netsettings = None
     
     def default_exit_on_press_left(self):
         self.runFlag = 0
@@ -47,14 +49,18 @@ class basemodule:
             self.lcd.disp.LCD_ShowImage(self.lcd.image,0,0)
             time.sleep(0.05)
 
+    # will use this key to fetch settings from network ( auto updating )
+    def netkey(self):
+        pass
+
+    # will display in list of modules on the main screen
     def title(self):
         return "DEFINE TITLE():STRING"
+
 
     def init(self):
         pass
 
+    # main loop of application
     def mainFlow(self):
-        pass
-
-    def serve(self, path):
         pass

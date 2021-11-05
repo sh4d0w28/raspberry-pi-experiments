@@ -1,3 +1,4 @@
+import math
 import time
 from modules.basemodule import basemodule
 from rpi_ws281x import *
@@ -19,13 +20,13 @@ class strand(basemodule):
     strip = None
 
     mode = 0
-    modes = ['warning', 'rainbow']
-
-    def serve(self, path):
-        self.button_key_1_pin_handler()
+    modes = ['warning', 'rainbow', 'network']
 
     def title(self):
         return "LEDs"
+
+    def netkey(self):
+        return "led_setting"
 
     def init(self):
         self.strip = Adafruit_NeoPixel(self.__LED_COUNT, self.__LED_PIN, self.__LED_FREQ_HZ, self.__LED_DMA, self.__LED_INVERT, self.__LED_BRIGHTNESS, self.__LED_CHANNEL)
@@ -35,15 +36,21 @@ class strand(basemodule):
     def mainFlow(self):
         self.lcd.draw.rectangle((0,0,128,128), outline=0, fill=0)
         self.lcd.draw.text((2,5), "LED" ,fill=(255,255,255,128))
-        self.lcd.draw.text((2,20), self.modes[self.mode],fill=(255,255,255,128))
+        
         if self.mode == 0:
             self.warning(0)
-        else:
+        elif self.mode == 1:
             self.rainbowCycle(1)
+        elif self.mode == 2:
+            self.setNetColors()
+        else:
+            self.clear()
+
+        self.lcd.draw.text((2,20), self.modes[self.mode],fill=(255,255,255,128))
                 
     def button_key_1_pin_handler(self):
-        if self.mode == 0:
-            self.mode = 1
+        if self.mode < 2:
+            self.mode = self.mode + 1
         else:
             self.mode = 0
         print('mode:', self.mode)
@@ -62,6 +69,28 @@ class strand(basemodule):
         for i in range(self.strip.numPixels()):
             self.strip.setPixelColor(i, Color(0,0,0))
         self.strip.show()
+
+    def setNetColors(self, wait_ms=100):
+        colors = self.netsettings["colors"]
+
+        range1 = len(colors)
+        range2 = self.strip.numPixels()
+        rangeN = range1
+        restRange = range2-range1
+        if range2 < range1:
+            rangeN = range2
+            restRange = range1-range2
+        
+        for i in range(rangeN):
+            h = colors[i].lstrip('#')
+            tup = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+            self.strip.setPixelColor(i, Color(tup[0], tup[1], tup[2]))
+        
+        for i in range(restRange):
+            self.strip.setPixelColor(rangeN + i, Color(0,0,0))
+
+        self.strip.show()
+        time.sleep(wait_ms/1000.0)
 
     def warning(self, mode, wait_ms=50):
         for r in range(50,10,-5):

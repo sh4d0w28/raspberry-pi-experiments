@@ -485,3 +485,6 @@ class moduleInterface:
 
     def serve(self, path):
         print("serve", path)
+
+    def netkey(self):
+        return "null"

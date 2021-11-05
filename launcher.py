@@ -1,8 +1,9 @@
 from threading import Thread
+
+import requests
 from gdep.LCD144 import KEY_UP_PIN, KEY_DOWN_PIN, KEY_PRESS_PIN, KEY1_PIN, LCD_LCD144
 import time
 import RPi.GPIO as GPIO
-from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from modules.connectinfo.connectinfo_main import connectInfo
 # from modules.servos.servos_main import servos
@@ -27,22 +28,25 @@ modules = [
 
 runFlag = 1
 
-class ModuleServer(BaseHTTPRequestHandler):
-    def do_GET(self):
-        print('GET', self.path)
-        modules[mode].serve(self.path)
-        return
+def fetchNetSettings():
+    while runFlag:
+        for module in modules:
+            try:
+                netkey = module.netkey()
+                r = requests.get("http://edushm.com/pinet/" + netkey)
+                module.netsettings = r.json()
+                print(module.netsettings)
+            except Exception:
+                print('no update for ' + module.title())
+        time.sleep(5)
 
-def runServer(handler_class=ModuleServer, server_class=HTTPServer, addr="0.0.0.0", port=8080):
-    server_address = (addr, port)
-    httpd = server_class(server_address, handler_class)
-    print(f"Starting httpd server on {addr}:{port}")
-    httpd.serve_forever()
+def startFetchNetService():
+    process2 = Thread(target=fetchNetSettings)
+    process2.start();
+
 
 if __name__=='__main__':
 
-    process = Thread(target=runServer)
-    process.start();
 
     while runFlag:
 
