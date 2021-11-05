@@ -53,6 +53,9 @@ class basemodule:
     def netkey(self):
         pass
 
+    def netevent(self):
+        pass
+
     # will display in list of modules on the main screen
     def title(self):
         return "DEFINE TITLE():STRING"

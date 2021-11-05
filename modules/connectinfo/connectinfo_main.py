@@ -1,7 +1,15 @@
+import math
+from datetime import datetime
 from modules.basemodule import basemodule
 from modules.connectinfo.network_helper import networkHelper
 
 class connectInfo(basemodule):
+
+    laststamp = None
+    sincetime = "NONE"
+
+    def init(self):
+        self.lasttamp = datetime.now()
 
     def title(self):
         return "Connection status"
@@ -35,3 +43,16 @@ class connectInfo(basemodule):
             self.lcd.draw.text((70,85), ".ngrok.io" ,fill=(128,255,128,128))
         except Exception as e:
             print(e)
+
+        self.lcd.draw.text((2,105), "SYNC:" + str(self.sincetime) ,fill=(255,255,255,128))
+
+    def netkey(self):
+        return "connect"
+    
+    def netevent(self):
+        if(self.laststamp == None):
+            self.laststamp = datetime.now()
+
+        timespan = (datetime.now() - self.laststamp).total_seconds()
+        self.sincetime = str(round(timespan, 2)) + " sec ago";
+        self.laststamp = datetime.now() 

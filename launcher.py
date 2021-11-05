@@ -30,23 +30,26 @@ runFlag = 1
 
 def fetchNetSettings():
     while runFlag:
-        for module in modules:
-            try:
-                netkey = module.netkey()
-                r = requests.get("http://edushm.com/pinet/" + netkey)
-                module.netsettings = r.json()
-                print(module.netsettings)
-            except Exception:
-                print('no update for ' + module.title())
+        if mode == -1:
+            continue
+        try:
+            netkey = modules[mode].netkey()
+            r = requests.get("http://edushm.com/pinet/" + netkey)
+            print(r.status_code)
+            if(r.status_code == 200):
+                modules[mode].netsettings = r.json()
+            modules[mode].netevent()
+        except Exception:
+            print('no update for ' + modules[mode].title())
         time.sleep(5)
 
 def startFetchNetService():
     process2 = Thread(target=fetchNetSettings)
     process2.start();
 
-
 if __name__=='__main__':
 
+    startFetchNetService()
 
     while runFlag:
 
