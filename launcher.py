@@ -41,7 +41,7 @@ def fetchNetSettings():
             modules[mode].netevent()
         except Exception:
             print('no update for ' + modules[mode].title())
-        time.sleep(5)
+        time.sleep(1)
 
 def startFetchNetService():
     process2 = Thread(target=fetchNetSettings)

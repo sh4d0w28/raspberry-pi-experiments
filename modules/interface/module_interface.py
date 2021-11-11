@@ -115,7 +115,11 @@ class moduleInterface:
 
         screenshots = []
 
-        for action in self.timedActions:    
+        for action in self.timedActions:
+
+            if self.recorderState != "play":
+                return;
+
             # self.currentProgress += 1
             # self.updateScreen()
             time.sleep(action['sleep'])
@@ -332,6 +336,9 @@ class moduleInterface:
         elif self.recorderState == "stop":
             self.recorderState = "idle"
 
+        elif self.recorderState == "play":
+            self.recorderState = "idle"
+        
         else:
             self.recorderState = "idle"
             self.finalize()
@@ -342,9 +349,13 @@ class moduleInterface:
 
     def button_key_2_pin_handler(self):
         if self.recorderState == "record":
-            abdAction = {"time": datetime.now().timestamp() - self.lasttimediff, "text":"SCREENSHOT"}
-            self.actions.append(abdAction)
-            print(abdAction)
+            delaytime = datetime.now().timestamp() - self.lasttimediff;
+            if delaytime > 0.1:
+                abdAction = {"time": datetime.now().timestamp() - self.lasttimediff, "text":"SCREENSHOT"}
+                self.actions.append(abdAction)
+                print(abdAction)
+            else:
+                print('skip as duplicated')
         elif self.recorderState == "idle":
             self.playlog = []
             selectedFileName = self.availableFiles[self.page*self.pageSize + self.selectedFile]

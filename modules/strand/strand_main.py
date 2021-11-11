@@ -1,5 +1,7 @@
 import math
 import time
+
+from PIL import Image
 from modules.basemodule import basemodule
 from rpi_ws281x import *
 from math import trunc
@@ -18,7 +20,7 @@ class strand(basemodule):
     __LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
     strip = None
-
+    image = None
     mode = 0
     modes = ['warning', 'rainbow', 'network']
 
@@ -31,12 +33,15 @@ class strand(basemodule):
     def init(self):
         self.strip = Adafruit_NeoPixel(self.__LED_COUNT, self.__LED_PIN, self.__LED_FREQ_HZ, self.__LED_DMA, self.__LED_INVERT, self.__LED_BRIGHTNESS, self.__LED_CHANNEL)
         self.strip.begin()
+        self.image = Image.open("/home/pi/robot/work/g1366.bmp")
         return super().init()
 
     def mainFlow(self):
         self.lcd.draw.rectangle((0,0,128,128), outline=0, fill=0)
         self.lcd.draw.text((2,5), "LED" ,fill=(255,255,255,128))
         
+        self.lcd.draw.bitmap((34,34), self.image)    
+
         if self.mode == 0:
             self.warning(0)
         elif self.mode == 1:
@@ -80,11 +85,14 @@ class strand(basemodule):
         if range2 < range1:
             rangeN = range2
             restRange = range1-range2
-        
+
         for i in range(rangeN):
-            h = colors[i].lstrip('#')
-            tup = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-            self.strip.setPixelColor(i, Color(tup[0], tup[1], tup[2]))
+            try: 
+                h = colors[i].lstrip('#')
+                tup = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+                self.strip.setPixelColor(i, Color(tup[0], tup[1], tup[2]))
+            except Exception:
+                print('FAT CHANCE!')
         
         for i in range(restRange):
             self.strip.setPixelColor(rangeN + i, Color(0,0,0))
