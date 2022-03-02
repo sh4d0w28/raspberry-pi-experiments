@@ -1,3 +1,5 @@
+from sys import argv
+import sys
 from threading import Thread
 
 import requests
@@ -34,6 +36,8 @@ def fetchNetSettings():
             continue
         try:
             netkey = modules[mode].netkey()
+            if netkey == None:
+                continue
             r = requests.get("http://edushm.com/pinet/" + netkey)
             print(r.status_code)
             if(r.status_code == 200):
@@ -48,6 +52,9 @@ def startFetchNetService():
     process2.start();
 
 if __name__=='__main__':
+
+    if sys.argv[1] == "3":
+        mode = 3
 
     startFetchNetService()
 

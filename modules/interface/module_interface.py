@@ -1,9 +1,11 @@
+import io
 import json
 import os
 import subprocess
 from threading import Thread
 
-from PIL import Image
+from PIL import Image, ImageChops
+import numpy
 
 from fpdf.fpdf import FPDF
 
@@ -35,14 +37,21 @@ class moduleInterface:
         self.lcd = lcd
         self.init()
 
+    lastbuttonpress = time.time();
+
     def buttonHandler(self):
         while self.runFlag == 1:
           for button in self.buttonStates:
             if GPIO.input(button) != self.buttonStates[button]:  
               self.buttonStates[button] = GPIO.input(button)
-              # print(str(button) + ' = ' + str(self.buttonStates[button]))              
               if GPIO.input(button) == 0 and self.buttonPressHandlers.get(button):
-                self.buttonPressHandlers.get(button)(self)    
+                delay = time.time() - self.lastbuttonpress 
+                self.lastbuttonpress = time.time();
+                if delay > 0.25:
+                    print(delay)
+                    self.buttonPressHandlers.get(button)(self)
+                else:
+                    print('dribble')    
 
     def run(self):
         self.runFlag = 1
@@ -104,9 +113,9 @@ class moduleInterface:
             self.availableFiles = os.listdir(self.fileDir)
         except Exception as e:
             print(e)
-            self.availableFiles = []
+            self.availableFiles = []        
 
-# replay
+    # replay
     def replay(self, fileToPlay, doReport):
         if fileToPlay != '':
             with open(self.fileDir + "/"+fileToPlay, 'r') as f:
@@ -130,7 +139,7 @@ class moduleInterface:
                 
                 if doReport:
                     p = subprocess.Popen(['adb', 'shell', 'screencap', '-p', '/sdcard/' + screenFileName])
-                    p.wait()
+                    # p.wait()
                     screenshots.append(screenFileName);
                     self.playlog.append('SHOT ' + screenFileName)
                     print('captured')
@@ -149,24 +158,45 @@ class moduleInterface:
             for screenshot in screenshots:
                     p = subprocess.Popen(['adb', 'pull', '/sdcard/' + screenshot, self.reportsDir + "/" + screenshot])
                     p.wait()
+                    p = subprocess.Popen(['adb', 'shell', 'rm -f', '/sdcard/' + screenshot])
+                    p.wait()
             self.playlog.append('[R] DONE')
 
             #GENERATE PDF
             pdf = FPDF()
+            pdf.set_font("Arial", "B", 14)
 
             pdf.add_page()
             pdf.text(20,30, 'REPORT AT ' + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
             
+            prevImage = None
+
             for image in screenshots:
                 self.playlog.append('[R]PDF+' + image)
-                pdf.add_page()
+
                 im1 = Image.open(self.reportsDir + "/" + image)
+
+                if prevImage != None:
+                    difference = self.diff_images(prevImage, im1)
+                    print('diff ' + image + ' : ' + str(difference))
+                    if difference < 3:
+                        self.playlog.append('[R]SKIP+' + image)
+                        continue
+                prevImage = im1
+
+                pdf.add_page()
                 rgbim = im1.convert('RGB')
                 rgbim.save(self.reportsDir + "/" + image + ".jpg")
-                pdf.image(self.reportsDir + "/" + image + ".jpg", 0,0, 100)
-            
+                pdf.image(self.reportsDir + "/" + image + ".jpg", 50,20, 100)
+                pdf.text(20,10, image)
+                
             pdfFileName = datetime.now().strftime("%H%M%S") + ".pdf"
             pdf.output(self.reportsDir + "/"+ pdfFileName, "F")
+
+            for image in screenshots:
+                os.remove(self.reportsDir + "/" + image + ".jpg")
+                os.remove(self.reportsDir + "/" + image)
+
             self.playlog.append('[R]SAVED' + pdfFileName)
 
         self.recorderState = 'stop'
@@ -255,6 +285,9 @@ class moduleInterface:
 
         return adbAction
 
+    def compare(im1,im2):
+        ImageChops
+
 #transform adb actions to script
     def finalize(self):
         if len(self.actions) > 0:
@@ -287,8 +320,14 @@ class moduleInterface:
                         'status': str(data[1]).replace('\\n','').split("'")[1]
                     })
 
-#button handlers
+    def diff_images(self, imgA, imgB):
+        res = ImageChops.difference(imgA, imgB)
+        total_pixels = imgA.height * imgA.width
+        diff_pixels = numpy.count_nonzero(res)
+        return diff_pixels * 100 / total_pixels
 
+
+    #button handlers
     def button_key_left_pin_handler(self):
         self.runFlag = 0
 
@@ -349,13 +388,9 @@ class moduleInterface:
 
     def button_key_2_pin_handler(self):
         if self.recorderState == "record":
-            delaytime = datetime.now().timestamp() - self.lasttimediff;
-            if delaytime > 0.1:
-                abdAction = {"time": datetime.now().timestamp() - self.lasttimediff, "text":"SCREENSHOT"}
-                self.actions.append(abdAction)
-                print(abdAction)
-            else:
-                print('skip as duplicated')
+            abdAction = {"time": datetime.now().timestamp() - self.lasttimediff, "text":"SCREENSHOT"}
+            self.actions.append(abdAction)
+            print(abdAction)
         elif self.recorderState == "idle":
             self.playlog = []
             selectedFileName = self.availableFiles[self.page*self.pageSize + self.selectedFile]
@@ -498,4 +533,4 @@ class moduleInterface:
         print("serve", path)
 
     def netkey(self):
-        return "null"
+        return None;
