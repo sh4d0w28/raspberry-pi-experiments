@@ -2,14 +2,14 @@ from modules.basemodule import basemodule
 from gdep.LCD144 import KEY1_PIN, KEY3_PIN, KEY_DOWN_PIN, KEY_UP_PIN
 from modules.servos.PCA9685 import PCA_PCA9685
 
+
 class servos(basemodule):
-    
     pwm = None
-    
-    servos = { 1: 'S1', 2: 'S2', 3: 'S3', 4: 'S4', 5: 'S5', 6: 'S6' }
-    servos_values = { 1: 1000, 2: 1100, 3: 1200, 4: 1300, 5: 1400, 6: 1500 }
-    servos_max_value = { 1: 1700, 2: 800, 3: 3200, 4: 2500, 5: 2300, 6: 2700 }
-    servos_min_value = {1: 1000, 2: 300, 3: 800, 4: 600, 5: 800, 6: 800 }
+
+    servos = {1: 'S1', 2: 'S2', 3: 'S3', 4: 'S4', 5: 'S5', 6: 'S6'}
+    servos_values = {1: 1000, 2: 1100, 3: 1200, 4: 1300, 5: 1400, 6: 1500}
+    servos_max_value = {1: 1700, 2: 800, 3: 3200, 4: 2500, 5: 2300, 6: 2700}
+    servos_min_value = {1: 1000, 2: 300, 3: 800, 4: 600, 5: 800, 6: 800}
     enabled = 1
 
     def init(self):
@@ -18,7 +18,6 @@ class servos(basemodule):
 
     def title(self):
         return "Servos"
-
 
     def button_key_1_pin_handler(self):
         self.move_left()
@@ -46,7 +45,7 @@ class servos(basemodule):
             self.enabled -= 1
         else:
             self.enabled = 6
-        
+
     def move_left(self):
         if self.enabled < 6:
             self.enabled += 1
@@ -54,18 +53,17 @@ class servos(basemodule):
             self.enabled = 1
 
     def set_servos(self):
-        for x in range(1,7):
-            self.pwm.setServoPulse(x,self.servos_values[x])
+        for x in range(1, 7):
+            self.pwm.setServoPulse(x, self.servos_values[x])
 
     def mainFlow(self):
-        
-        self.lcd.draw.rectangle((0,0,128,128), outline=0, fill=0)
 
-        for i in range(1,7):
-            whitefill = (255,255,255,128)
-            if(i == self.enabled):
-                self.lcd.draw.text((10,50+10 * i), str(self.servos_values[i]), fill=(255,255,255,128))
+        self.lcd.draw.rectangle((0, 0, 128, 128), outline=0, fill=0)
+
+        for i in range(1, 7):
+            if i == self.enabled:
+                self.lcd.draw.text((10, 50 + 10 * i), str(self.servos_values[i]), fill=(255, 255, 255, 128))
             else:
-                self.lcd.draw.text((10,50+10 * i), str(self.servos_values[i]), fill=(255,0,0,128))
-        
+                self.lcd.draw.text((10, 50 + 10 * i), str(self.servos_values[i]), fill=(255, 0, 0, 128))
+
         self.set_servos()
