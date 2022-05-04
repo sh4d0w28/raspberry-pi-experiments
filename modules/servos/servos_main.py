@@ -1,5 +1,5 @@
 from modules.basemodule import basemodule
-from gdep.LCD144 import KEY1_PIN, KEY3_PIN, KEY_DOWN_PIN, KEY_UP_PIN
+from gdep.LCD144 import KEY1_PIN, KEY2_PIN, KEY3_PIN, KEY_DOWN_PIN, KEY_UP_PIN
 from modules.servos.PCA9685 import PCA_PCA9685
 import json, time
 
@@ -19,24 +19,25 @@ class servos(basemodule):
     def title(self):
         return "Servos"
 
-    def moveTo(self, servos_goal = {}, timetoreach = 5, delay = 0):
-        sleeptime = 0.1
+    def moveTo(self, servos_goal = {}, timetoreach = 5, sleeptime = 0.05, delay = 0):
+
         dx = {1:0,2:0,3:0,4:0,5:0,6:0}
         steps = int(timetoreach / sleeptime)
         for i in range(1,7):
-            if servos_goal.get(i):
-                dx[i] = ( servos_goal.get(i) - self.servos.get(i) ) / steps
+            si = str(i)
+            if servos_goal.get(si):
+                dx[i] = ( servos_goal.get(si) - self.servos_values.get(i) ) / steps
             else:
                 dx[i] = 0
-                servos_goal[i] = self.servos[i]
+                servos_goal[si] = self.servos_values[i]
 
         for i in range(0, steps):
             for i in range(1,7):
-                self.servos[i] += dx.get(i)
+                self.servos_values[i] += dx.get(i)
             self.set_servos()
             time.sleep(sleeptime)
         for i in range(1,7):
-            self.servos[i] = servos_goal.get(i)
+            self.servos_values[i] = servos_goal.get(si)
         self.set_servos()
 
     def button_key_1_pin_handler(self):
@@ -54,11 +55,20 @@ class servos(basemodule):
         self.servos_values[self.enabled] -= 100
 
     def button_key_2_pin_handler(self):
-        self.moveTo({1: 1700, 2: 300}, 10)
-        self.moveTo({1: 1000, 2: 300}, 10)
+        fileToPlay = "test.json"
+        fileDir = "/home/pi/robot/servos_req"
+
+        with open(fileDir + "/"+fileToPlay, 'r') as f:
+            timedActions = json.load(f)
+
+        for action in timedActions:
+            print(action['servos'], action['steps'], action['sleeptime'])
+            self.moveTo(action['servos'], action['steps'], action['sleeptime'])
+
 
     buttonPressHandlers = {
         KEY1_PIN: button_key_1_pin_handler,
+        KEY2_PIN: button_key_2_pin_handler,
         KEY3_PIN: button_key_3_pin_handler,
         KEY_DOWN_PIN: button_down_handler,
         KEY_UP_PIN: button_up_handler
