@@ -1,62 +1,20 @@
-from sys import argv
-import sys
-from threading import Thread
-
-import requests
-from gdep.LCD144 import KEY_UP_PIN, KEY_DOWN_PIN, KEY_PRESS_PIN, KEY1_PIN, LCD_LCD144
+from wrappers.LCD144 import LCD_LCD144
+from wrappers.pins import *
+import wrappers.GPIO as GPIO
 import time
-import RPi.GPIO as GPIO
+import threading
 
-from modules.connectinfo.connectinfo_main import connectInfo
-# from modules.servos.servos_main import servos
-from modules.strand.strand_main import strand
-# from modules.pong.module_pong import modulePong
-from modules.update.module_update import moduleUpdate
-from modules.interface.module_interface import moduleInterface
 
 lcd = LCD_LCD144()
 
 mode = -1
 selected = 0
 
-modules = [
-    connectInfo(lcd),
-    # servos(lcd),
-    strand(lcd),
-    # modulePong(lcd),
-    moduleUpdate(lcd),
-    moduleInterface(lcd)
-]
+modules = []
 
 runFlag = 1
 
-def fetchNetSettings():
-    while runFlag:
-        if mode == -1:
-            continue
-        try:
-            netkey = modules[mode].netkey()
-            if netkey == None:
-                continue
-            r = requests.get("http://edushm.com/pinet/" + netkey)
-            print(r.status_code)
-            if(r.status_code == 200):
-                modules[mode].netsettings = r.json()
-            modules[mode].netevent()
-        except Exception:
-            print('no update for ' + modules[mode].title())
-        time.sleep(1)
-
-def startFetchNetService():
-    process2 = Thread(target=fetchNetSettings)
-    process2.start();
-
 if __name__=='__main__':
-
-    if sys.argv[1] == "3":
-        mode = 3
-
-    startFetchNetService()
 
     while runFlag:
 
@@ -74,7 +32,7 @@ if __name__=='__main__':
             if GPIO.input(KEY_PRESS_PIN) == 0:
                 mode = selected;
 
-            lcd.draw.rectangle((0,0,128,128), outline=0, fill=0)
+            lcd.draw.rectangle(xy=(0,0,128,128), outline=0, fill=0)
             lcd.draw.text((5,112), "(c)" ,fill=(255,255,255,128))
             lcd.draw.text((30,108), "Maksim Edush" ,fill=(255,255,255,128))
             lcd.draw.text((40,118), "sh4d0w28" ,fill=(255,255,255,128))

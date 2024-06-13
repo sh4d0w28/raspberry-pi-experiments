@@ -42,7 +42,7 @@ class LCD_LCD144:
         draw = ImageDraw.Draw(image)
 
         # Draw a black filled box to clear the image.
-        draw.rectangle((0,0,self.width,self.height), outline=0, fill=0)
+        draw.rectangle(xy=(0,0,self.width,self.height), outline=0, fill=0)
         disp.LCD_ShowImage(image,0,0)
 
         self.disp = disp;
