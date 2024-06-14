@@ -1,17 +1,17 @@
-from gdep.LCD144 import KEY1_PIN, KEY2_PIN, KEY3_PIN, KEY_DOWN_PIN, KEY_LEFT_PIN, KEY_PRESS_PIN, KEY_RIGHT_PIN, KEY_UP_PIN
 import RPi.GPIO as GPIO
 from functools import wraps
 import time
+from gdep.LCD144_pins import *
 
 curState = {
-    KEY1_PIN:1, 
-    KEY2_PIN:1, 
-    KEY3_PIN:1, 
-    KEY_DOWN_PIN:1, 
-    KEY_LEFT_PIN:1, 
-    KEY_PRESS_PIN:1, 
-    KEY_RIGHT_PIN:1, 
-    KEY_UP_PIN:1
+    PIN_KEY.K1:1, 
+    PIN_KEY.K2:1, 
+    PIN_KEY.K3:1, 
+    PIN_KEY.UP:1, 
+    PIN_KEY.DOWN:1, 
+    PIN_KEY.LEFT:1, 
+    PIN_KEY.RIGHT:1, 
+    PIN_KEY.PRESS:1
 }
 
 def pinstate(pin):

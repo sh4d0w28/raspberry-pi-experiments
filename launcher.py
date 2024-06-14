@@ -19,15 +19,15 @@ selected = 0
 
 
 def key_event(pin, state):
-    if pin == KEY1_PIN and state == 1:
+    if pin == PIN_KEY.K1 and state == 1:
         runFlag = 0
-    elif pin == KEY_UP_PIN and state == 1:
+    elif pin == PIN_KEY.UP and state == 1:
         if selected > 0:
             selected -= 1
-    elif pin == KEY_DOWN_PIN and state == 1:
+    elif pin == PIN_KEY.DOWN and state == 1:
         if selected < len(modules) - 1:
             selected += 1
-    elif pin == KEY_PRESS_PIN and state == 1:
+    elif pin == PIN_KEY.PRESS and state == 1:
         mode = selected;
     else:
         pass

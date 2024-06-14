@@ -1,8 +1,9 @@
-KEY_UP_PIN     = 6 
-KEY_DOWN_PIN   = 19
-KEY_LEFT_PIN   = 5
-KEY_RIGHT_PIN  = 26
-KEY_PRESS_PIN  = 13
-KEY1_PIN       = 21
-KEY2_PIN       = 20
-KEY3_PIN       = 16
+class PIN_KEY:
+    UP    = 6 
+    DOWN  = 19
+    LEFT  = 5
+    RIGHT = 26
+    PRESS = 13
+    K1    = 21
+    K2    = 20
+    K3    = 16

@@ -9,14 +9,14 @@ class LCD_LCD144:
         #init GPIO
         GPIO.setmode(GPIO.BCM) 
         GPIO.cleanup()
-        GPIO.setup(KEY_UP_PIN,      GPIO.IN, pull_up_down=GPIO.PUD_UP)    # Input with pull-up
-        GPIO.setup(KEY_DOWN_PIN,    GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Input with pull-up
-        GPIO.setup(KEY_LEFT_PIN,    GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Input with pull-up
-        GPIO.setup(KEY_RIGHT_PIN,   GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
-        GPIO.setup(KEY_PRESS_PIN,   GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
-        GPIO.setup(KEY1_PIN,        GPIO.IN, pull_up_down=GPIO.PUD_UP)      # Input with pull-up
-        GPIO.setup(KEY2_PIN,        GPIO.IN, pull_up_down=GPIO.PUD_UP)      # Input with pull-up
-        GPIO.setup(KEY3_PIN,        GPIO.IN, pull_up_down=GPIO.PUD_UP)      # Input with pull-up
+        GPIO.setup(PIN_KEY.UP,      GPIO.IN, pull_up_down=GPIO.PUD_UP)    # Input with pull-up
+        GPIO.setup(PIN_KEY.DOWN,    GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Input with pull-up
+        GPIO.setup(PIN_KEY.LEFT,    GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Input with pull-up
+        GPIO.setup(PIN_KEY.RIGHT,   GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
+        GPIO.setup(PIN_KEY.PRESS,   GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
+        GPIO.setup(PIN_KEY.K1,        GPIO.IN, pull_up_down=GPIO.PUD_UP)      # Input with pull-up
+        GPIO.setup(PIN_KEY.K2,        GPIO.IN, pull_up_down=GPIO.PUD_UP)      # Input with pull-up
+        GPIO.setup(PIN_KEY.K3,        GPIO.IN, pull_up_down=GPIO.PUD_UP)      # Input with pull-up
 
         # 240x240 display with hardware SPI:
         disp = LCD()
