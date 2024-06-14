@@ -1,15 +1,7 @@
 from gdep.LCD_1in44 import LCD, SCAN_DIR_DFT
 import RPi.GPIO as GPIO
 from PIL import Image,ImageDraw,ImageFont,ImageColor
-
-KEY_UP_PIN     = 6 
-KEY_DOWN_PIN   = 19
-KEY_LEFT_PIN   = 5
-KEY_RIGHT_PIN  = 26
-KEY_PRESS_PIN  = 13
-KEY1_PIN       = 21
-KEY2_PIN       = 20
-KEY3_PIN       = 16
+from LCD144_pins import *
 
 class LCD_LCD144:
 

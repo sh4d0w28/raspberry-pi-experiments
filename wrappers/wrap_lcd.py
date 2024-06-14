@@ -1,13 +1,23 @@
 
 from gdep.LCD144 import LCD_LCD144
 
+#singleton
 class wrap_LCD:
 
+    _instance = None
     _lcd: LCD_LCD144 
 
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(wrap_LCD, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
+
     def __init__(self):
-        self._lcd = LCD_LCD144()
-    
+        # prevent constuctor from call several time
+        if not hasattr(self, 'initialized'):
+            self._lcd = LCD_LCD144()
+            self.initialized = True
+        
     def text(self, xy, text, fill=None, font=None):
         self._lcd.draw.text(xy, text, fill, font)
     
