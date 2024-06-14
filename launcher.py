@@ -17,8 +17,11 @@ runFlag = 1
 mode = -1
 selected = 0
 
-
 def key_event(pin, state):
+    global runFlag
+    global selected
+    global mode
+        
     if pin == PIN_KEY.K1 and state == 1:
         runFlag = 0
     elif pin == PIN_KEY.UP and state == 1:
@@ -28,19 +31,19 @@ def key_event(pin, state):
         if selected < len(modules) - 1:
             selected += 1
     elif pin == PIN_KEY.PRESS and state == 1:
-        mode = selected;
+        mode = selected
     else:
         pass
 
-event = Event()
-event.reset()
-event.register_listener(key_event)
-thread = threading.Thread(target=eventLoop)
-
-
 if __name__=='__main__':
 
+    event = Event()
+    thread = threading.Thread(target=eventLoop)
     thread.start()
+
+    event.reset()
+    event.register_listener(key_event)
+
     
     while runFlag:
 
@@ -66,5 +69,8 @@ if __name__=='__main__':
             print('mode', mode)
             modules[mode].run()
             mode = -1
+
+            event.reset()
+            event.register_listener(key_event)
         
     lcd.clear()
