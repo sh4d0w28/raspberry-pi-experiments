@@ -40,11 +40,9 @@ if __name__=='__main__':
     event = Event()
     thread = threading.Thread(target=eventLoop)
     thread.start()
-
     event.reset()
     event.register_listener(key_event)
 
-    
     while runFlag:
 
         if mode == -1:
@@ -68,9 +66,13 @@ if __name__=='__main__':
         else:
             print('mode', mode)
             modules[mode].run()
+            print('module done', mode)
+            
             mode = -1
+            runFlag = 1
 
             event.reset()
             event.register_listener(key_event)
         
+    event.please_stop()
     lcd.clear()

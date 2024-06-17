@@ -13,6 +13,14 @@ class networkHelper:
             print(e.output)
             return ""
 
+    def autossh():
+        try:
+            output = subprocess.check_output(['ps -aux | grep autossh | egrep -oe "-R\s.*\s"'], shell=True)
+            return output.decode('utf-8').replace('-R ', '').replace(':22', '')
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            return 'ERR'
+
     def getNgrokIp():
         resultUrl = {
             "tcpurl" : "",

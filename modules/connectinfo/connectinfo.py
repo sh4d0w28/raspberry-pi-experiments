@@ -1,9 +1,14 @@
-import math
+import time
 from datetime import datetime
+from gdep.LCD144_pins import PIN_KEY
 from modules.basemodule import basemodule
 from modules.connectinfo.network_helper import networkHelper
 
 class connectInfo(basemodule):
+
+    def key_event(self, pin, state):
+        if pin == PIN_KEY.K1 and state == 1:
+            self.runFlag = 0
 
     def init(self):
         self.lasttamp = datetime.now()
@@ -16,11 +21,16 @@ class connectInfo(basemodule):
 
         wifisid = networkHelper.getWifiSsid()
         extIp = networkHelper.getExtIp()
+        sshString = networkHelper.autossh()
             
-        self.lcd.text((2,5), "WiFi:" ,fill=(255,255,255,128))
-        self.lcd.text((33,5), wifisid ,fill=(255,255,255,128))
+        self.lcd.text((2,5), "WiFi:")
+        self.lcd.text((33,5), wifisid)
 
-        self.lcd.text((2,15), "IP:" ,fill=(255,255,255,128))
-        self.lcd.text((33,15), extIp ,fill=(255,255,255,128))
+        self.lcd.text((2,15), "IP:")
+        self.lcd.text((33,15), extIp)
 
-        self.lcd.text((2,105), "SYNC:" + str(self.sincetime) ,fill=(255,255,255,128))
+        self.lcd.text((2,25), "SSH: " + sshString)
+
+        self.lcd.text((2,105), "SYNC:" + str(datetime.now().time()))
+
+        time.sleep(1)

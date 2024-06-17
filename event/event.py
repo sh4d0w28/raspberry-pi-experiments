@@ -44,6 +44,7 @@ def rate_limit(calls_per_second):
 class Event:
 
     _instance = None
+    wantStop = False
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -55,6 +56,7 @@ class Event:
         if not hasattr(self, 'initialized'):
             
             self.listeners = []
+            self.wantStop = False
 
             self.initialized = True
 
@@ -64,6 +66,9 @@ class Event:
     def register_listener(self, listener):
         self.listeners.append(listener)
 
+    def please_stop(self):
+        self.wantStop = True
+
     @rate_limit(calls_per_second=50)
     def notify(self, pin, state):
         for listener in self.listeners:
@@ -71,7 +76,7 @@ class Event:
 
 def eventLoop():
     event = Event()
-    while True:
+    while not event.wantStop:
         for pin in curState:
             if GPIO.input(pin) != curState[pin]:
                 curState[pin] = GPIO.input(pin)

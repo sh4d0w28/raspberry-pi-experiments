@@ -1,7 +1,7 @@
 from gdep.LCD_1in44 import LCD, SCAN_DIR_DFT
 import RPi.GPIO as GPIO
 from PIL import Image,ImageDraw,ImageFont,ImageColor
-from LCD144_pins import PIN_KEY
+from gdep.LCD144_pins import PIN_KEY
 
 class LCD_LCD144:
 

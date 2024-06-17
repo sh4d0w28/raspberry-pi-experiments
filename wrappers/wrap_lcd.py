@@ -18,7 +18,7 @@ class wrap_LCD:
             self._lcd = LCD_LCD144()
             self.initialized = True
         
-    def text(self, xy, text, fill=None, font=None):
+    def text(self, xy, text, fill=(255,255,255,128), font=None):
         self._lcd.draw.text(xy, text, fill, font)
     
     def rectangle(self, xy, fill=None, outline=None, width=1):
