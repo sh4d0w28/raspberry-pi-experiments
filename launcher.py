@@ -2,7 +2,7 @@ import time
 import threading
 
 from wrappers.wrap_lcd import wrap_LCD
-from event.event import Event, eventLoop, pinstate;
+from event.event import Event, eventLoop;
 from gdep.LCD144_pins import *
 
 from modules.connectinfo.connectinfo import connectInfo

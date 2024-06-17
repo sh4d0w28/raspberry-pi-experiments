@@ -1,4 +1,4 @@
-import RPi.GPIO as GPIO
+from wrappers.wrap_gpio import input
 from functools import wraps
 import time
 from gdep.LCD144_pins import *
@@ -78,6 +78,6 @@ def eventLoop():
     event = Event()
     while not event.wantStop:
         for pin in curState:
-            if GPIO.input(pin) != curState[pin]:
-                curState[pin] = GPIO.input(pin)
+            if input(pin) != curState[pin]:
+                curState[pin] = input(pin)
                 event.notify(pin, curState[pin])
