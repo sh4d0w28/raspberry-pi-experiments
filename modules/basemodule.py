@@ -1,13 +1,13 @@
-from wrappers.wrap_lcd import wrap_LCD
-from gdep.LCD144_pins import PIN_KEY
-from event.event import Event
+
+from glbl.LcdEmulator import LcdEmulator
+from glbl.EventManager import EventManager
 
 import time
 
 class basemodule:
     
     # global values for module
-    lcd: wrap_LCD = wrap_LCD()
+    lcd = LcdEmulator()
     runFlag = 1
 
     def __init__(self) -> None:
@@ -15,9 +15,9 @@ class basemodule:
 
     def run(self):
 
-        event = Event()
-        event.reset()
-        event.register_listener(self.key_event)
+        event = EventManager()
+        event.dropHandlers()
+        event.registerHandler(self.key_event)
 
         while self.runFlag == 1:
             self.mainFlow()

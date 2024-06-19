@@ -10,6 +10,7 @@ class PinState:
     
     def set(self, pin: PinKey, state: int):
         self.curState[pin] = state
+        print('set ', self.curState)
 
     ############# PRIVATE SECTION ################
 

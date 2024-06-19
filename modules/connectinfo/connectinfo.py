@@ -1,13 +1,13 @@
 import time
 from datetime import datetime
-from gdep.LCD144_pins import PIN_KEY
+from enums.PinKey import PinKey
 from modules.basemodule import basemodule
 from modules.connectinfo.network_helper import networkHelper
 
 class connectInfo(basemodule):
 
     def key_event(self, pin, state):
-        if pin == PIN_KEY.K1 and state == 1:
+        if pin == PinKey.K1 and state == 1:
             self.runFlag = 0
 
     def init(self):

@@ -15,7 +15,7 @@ class LcdEmulator:
         tfill = 'white'
         if fill == (255,0,0,128):
             tfill = 'red'
-        self._canvas.create_text(xy[0], xy[1], text=text, fill=tfill, font=font)
+        self._canvas.create_text(xy[0], xy[1], text=text, fill=tfill, font = "Helvetica 7",anchor='nw')
     
     def rectangle(self, xy, fill=None, outline=None, width=1):
         self._canvas.create_rectangle(xy[0], xy[1], xy[2], xy[3], outline, width, fill)
@@ -52,7 +52,7 @@ class LcdEmulator:
 
     def _init(self):
         self._root = tk.Tk()
-        self._root.geometry("300x130")
+        self._root.geometry("300x135")
         self._root.title("WS144")
 
         buttonKey1 = tk.Button(self._root, text="KEY1_PIN")
@@ -103,26 +103,26 @@ class LcdEmulator:
         buttonKeyPress.bind("<ButtonRelease-1>", self._keypresspin_rlsd)
 
 
-    def _key1pin_prsd(self, e): PinState().set(PinKey.K1, 1)
-    def _key1pin_rlsd(self, e): PinState().set(PinKey.K1, 0)
+    def _key1pin_prsd(self, e): PinState().set(PinKey.K1, 0)
+    def _key1pin_rlsd(self, e): PinState().set(PinKey.K1, 1)
     
-    def _key2pin_prsd(self, e): PinState().set(PinKey.K2, 1)
-    def _key2pin_rlsd(self, e): PinState().set(PinKey.K2, 0)
+    def _key2pin_prsd(self, e): PinState().set(PinKey.K2, 0)
+    def _key2pin_rlsd(self, e): PinState().set(PinKey.K2, 1)
 
-    def _key3pin_prsd(self, e): PinState().set(PinKey.K3, 1)
-    def _key3pin_rlsd(self, e): PinState().set(PinKey.K3, 0)
+    def _key3pin_prsd(self, e): PinState().set(PinKey.K3, 0)
+    def _key3pin_rlsd(self, e): PinState().set(PinKey.K3, 1)
     
-    def _keydownpin_prsd(self, e): PinState().set(PinKey.DOWN, 1)
-    def _keydownpin_rlsd(self, e): PinState().set(PinKey.DOWN, 0)
+    def _keydownpin_prsd(self, e): PinState().set(PinKey.DOWN, 0)
+    def _keydownpin_rlsd(self, e): PinState().set(PinKey.DOWN, 1)
 
-    def _keyuppin_prsd(self, e): PinState().set(PinKey.UP, 1)
-    def _keyuppin_rlsd(self, e): PinState().set(PinKey.UP, 0)
+    def _keyuppin_prsd(self, e): PinState().set(PinKey.UP, 0)
+    def _keyuppin_rlsd(self, e): PinState().set(PinKey.UP, 1)
 
-    def _keyleftpin_prsd(self, e): PinState().set(PinKey.LEFT, 1)
-    def _keyleftpin_rlsd(self, e): PinState().set(PinKey.LEFT, 0)
+    def _keyleftpin_prsd(self, e): PinState().set(PinKey.LEFT, 0)
+    def _keyleftpin_rlsd(self, e): PinState().set(PinKey.LEFT, 1)
 
-    def _keyrightpin_prsd(self, e): PinState().set(PinKey.RIGHT, 1)
-    def _keyrightpin_rlsd(self, e): PinState().set(PinKey.RIGHT, 0)
+    def _keyrightpin_prsd(self, e): PinState().set(PinKey.RIGHT, 0)
+    def _keyrightpin_rlsd(self, e): PinState().set(PinKey.RIGHT, 1)
 
-    def _keypresspin_prsd(self, e): PinState().set(PinKey.PRESS, 1)
-    def _keypresspin_rlsd(self, e): PinState().set(PinKey.LEFT, 0)
+    def _keypresspin_prsd(self, e): PinState().set(PinKey.PRESS, 0)
+    def _keypresspin_rlsd(self, e): PinState().set(PinKey.PRESS, 1)

@@ -11,7 +11,11 @@ from glbl.LcdEmulator import LcdEmulator
 
 lcd = LcdEmulator()
 
-modules = []
+from modules.connectinfo.connectinfo import connectInfo
+modules = [
+    connectInfo(),
+    connectInfo(),
+]
 
 runFlag = 1
 mode = -1
@@ -22,15 +26,15 @@ def key_event(pin, state):
     global selected
     global mode
         
-    if pin == PinKey.K1 and state == 1:
+    if pin == PinKey.K1 and state == 0:
         runFlag = 0
-    elif pin == PinKey.UP and state == 1:
+    elif pin == PinKey.UP and state == 0:
         if selected > 0:
             selected -= 1
-    elif pin == PinKey.DOWN and state == 1:
+    elif pin == PinKey.DOWN and state == 0:
         if selected < len(modules) - 1:
             selected += 1
-    elif pin == PinKey.PRESS and state == 1:
+    elif pin == PinKey.PRESS and state == 0:
         mode = selected
     else:
         pass
@@ -51,16 +55,16 @@ def titleThread():
 
         if mode == -1:
             lcd.clear()
-            lcd.text((5,112), "(c)" ,fill=(255,255,255,128))
-            lcd.text((30,108), "Maksim Edush" ,fill=(255,255,255,128))
-            lcd.text((40,118), "sh4d0w28" ,fill=(255,255,255,128))
+            lcd.text((5,112), "(c)")
+            lcd.text((30,108), "Maksim Edush")
+            lcd.text((40,118), "sh4d0w28")
 
             i = 0
             for module in modules:
                 if selected == i:
                     lcd.text((5,5 + 10*i), module.title(), fill=(255,0,0,128))
                 else:
-                    lcd.text((5,5 + 10*i), module.title(), fill=(255,255,255,128))
+                    lcd.text((5,5 + 10*i), module.title())
                 i+=1
 
             lcd.update()

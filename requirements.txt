@@ -4,3 +4,4 @@ Pillow==8.3.2
 smbus==1.1.post2
 spidev==3.5
 rpi-ws281x=5.0.0
+wxPython==4.2.1
