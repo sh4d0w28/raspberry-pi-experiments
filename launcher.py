@@ -1,17 +1,17 @@
 import time
+
 import threading
 
-from wrappers.wrap_lcd import wrap_LCD
-from event.event import Event, eventLoop;
-from gdep.LCD144_pins import *
+from enums.PinKey import PinKey;
+from glbl.EventManager import EventManager
 
-from modules.connectinfo.connectinfo import connectInfo
+from glbl.LcdEmulator import LcdEmulator
+#from wrappers.wrap_lcd import wrap_LCD
+#lcd = wrap_LCD()
 
-modules = [
-    connectInfo()
-]
+lcd = LcdEmulator()
 
-lcd = wrap_LCD()
+modules = []
 
 runFlag = 1
 mode = -1
@@ -22,33 +22,35 @@ def key_event(pin, state):
     global selected
     global mode
         
-    if pin == PIN_KEY.K1 and state == 1:
+    if pin == PinKey.K1 and state == 1:
         runFlag = 0
-    elif pin == PIN_KEY.UP and state == 1:
+    elif pin == PinKey.UP and state == 1:
         if selected > 0:
             selected -= 1
-    elif pin == PIN_KEY.DOWN and state == 1:
+    elif pin == PinKey.DOWN and state == 1:
         if selected < len(modules) - 1:
             selected += 1
-    elif pin == PIN_KEY.PRESS and state == 1:
+    elif pin == PinKey.PRESS and state == 1:
         mode = selected
     else:
         pass
 
-if __name__=='__main__':
 
-    event = Event()
-    thread = threading.Thread(target=eventLoop)
-    thread.start()
-    event.reset()
-    event.register_listener(key_event)
-
+def titleThread():
+    
+    global runFlag
+    global mode
+    global selected
+    
+    eventManager = EventManager()
+    eventManager.dropHandlers()
+    eventManager.registerHandler(key_event)
+    eventManager.start()
+    
     while runFlag:
 
         if mode == -1:
-            lcd.rectangle((0,0,128,128), outline=0, fill=0)
-
-            lcd.rectangle((0,0,128,128), outline=0, fill=0)
+            lcd.clear()
             lcd.text((5,112), "(c)" ,fill=(255,255,255,128))
             lcd.text((30,108), "Maksim Edush" ,fill=(255,255,255,128))
             lcd.text((40,118), "sh4d0w28" ,fill=(255,255,255,128))
@@ -64,15 +66,27 @@ if __name__=='__main__':
             lcd.update()
             time.sleep(0.1)
         else:
+            # start module in blocking thread. Title screen pause processing
             print('mode', mode)
             modules[mode].run()
             print('module done', mode)
             
+            # return runFlags and control to title screen flow
             mode = -1
             runFlag = 1
 
-            event.reset()
-            event.register_listener(key_event)
+            # restore event binding
+            eventManager.dropHandlers()
+            eventManager.registerHandler(key_event)
         
-    event.please_stop()
+    eventManager.stop()
     lcd.clear()
+
+
+if __name__=='__main__':
+
+    t = threading.Thread(target= titleThread)
+    t.start()
+    lcd.start()
+    
+    

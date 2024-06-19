@@ -1,4 +1,6 @@
-class PIN_KEY:
+from enum import Enum
+
+class PinKey(Enum):
     UP    = 6 
     DOWN  = 19
     LEFT  = 5

@@ -1,0 +1,10 @@
+@startuml
+
+Launcher --> eventUtils : startEventHandling
+eventUtils --> _loop : start
+
+Launcher --> eventUtils : resetEvents
+Launcher --> Event : addListener
+
+
+@enduml
