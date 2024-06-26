@@ -9,10 +9,10 @@ import RPi.GPIO as GPIO
 
 from modules.connectinfo.connectinfo_main import connectInfo
 # from modules.servos.servos_main import servos
-from modules.strand.strand_main import strand
+# from modules.strand.strand_main import strand
 # from modules.pong.module_pong import modulePong
-from modules.update.module_update import moduleUpdate
-from modules.interface.module_interface import moduleInterface
+# from modules.update.module_update import moduleUpdate
+# from modules.interface.module_interface import moduleInterface
 
 lcd = LCD_LCD144()
 
@@ -22,41 +22,18 @@ selected = 0
 modules = [
     connectInfo(lcd),
     # servos(lcd),
-    strand(lcd),
+    # strand(lcd),
     # modulePong(lcd),
-    moduleUpdate(lcd),
-    moduleInterface(lcd)
+    # moduleUpdate(lcd),
+    # moduleInterface(lcd)
 ]
 
 runFlag = 1
-
-def fetchNetSettings():
-    while runFlag:
-        if mode == -1:
-            continue
-        try:
-            netkey = modules[mode].netkey()
-            if netkey == None:
-                continue
-            r = requests.get("http://edushm.com/pinet/" + netkey)
-            print(r.status_code)
-            if(r.status_code == 200):
-                modules[mode].netsettings = r.json()
-            modules[mode].netevent()
-        except Exception:
-            print('no update for ' + modules[mode].title())
-        time.sleep(1)
-
-def startFetchNetService():
-    process2 = Thread(target=fetchNetSettings)
-    process2.start();
 
 if __name__=='__main__':
 
     if sys.argv[1] == "3":
         mode = 3
-
-    startFetchNetService()
 
     while runFlag:
 
